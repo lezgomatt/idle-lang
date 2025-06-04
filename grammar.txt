@@ -1,0 +1,36 @@
+
+start =
+  | statement
+
+statement =
+  | import_statement
+  | definition_statement
+
+import_statement =
+  | "import" <namespace> ["as" <ident>]
+
+namespace = <ident> ("." <ident>)*
+
+definition_statement =
+  | <flag>* <ident> <ident> "{" [<doc>] <property>* "}"
+
+flag =
+  | "[" <ident> ["(" [<parameter_list>] ")"] "]"
+
+parameter_list =
+  | <parameter> ("," <parameter>)*
+
+parameter =
+  | <name> [":" (<specification> | <literal>)]
+  | <specification> | <literal>
+
+property =
+  | <flag>* [<ident>] <ident> [":" <specification>] ["=" <literal>] [<doc>]
+
+specification =
+  | <ident> ["[" [parameter_list] "]"]
+  | "[" [parameter_list] "]"
+
+literal = <boolean> | <integer> | <string>
+doc = "``" <text> "``"
+ident = [_A-Za-z][_A-Za-z0-9]*
