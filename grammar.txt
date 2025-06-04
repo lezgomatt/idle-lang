@@ -12,7 +12,7 @@ import_statement =
 namespace = <ident> ("." <ident>)*
 
 definition_statement =
-  | <flag>* <ident> <ident> "{" [<doc>] <property>* "}"
+  | <flag>* <ident> <ident> "{" [<doc_string>] <property>* "}"
 
 flag =
   | "[" <ident> ["(" [<parameter_list>] ")"] "]"
@@ -25,12 +25,12 @@ parameter =
   | <specification> | <literal>
 
 property =
-  | <flag>* [<ident>] <ident> [":" <specification>] ["=" <literal>] [<doc>]
+  | <flag>* [<ident>] <ident> [":" <specification>] ["=" <literal>] [<doc_string>]
 
 specification =
   | <ident> ["[" [parameter_list] "]"]
   | "[" [parameter_list] "]"
 
 literal = <boolean> | <integer> | <string>
-doc = "``" <text> "``"
+doc_string = "``" <text> "``"
 ident = [_A-Za-z][_A-Za-z0-9]*
