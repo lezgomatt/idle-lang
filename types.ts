@@ -1,11 +1,11 @@
-export type IDLEFile = {
+export type IdleFile = {
     path: string, // absolute or relative (?)
     namespace: string,
     imports: Import[],
     defs: Definition[],
 };
 
-// TODO: Add `source: [IDLEFile, number, number]`
+// TODO: Add `source: [IdleFile, number, number]`
 
 export type Import = {
     namespace: string,
