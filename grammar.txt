@@ -21,8 +21,7 @@ parameter_list =
   | <parameter> ("," <parameter>)*
 
 parameter =
-  | <name> [":" (<specification> | <literal>)]
-  | <specification> | <literal>
+  | [<name> ":"] (<specification> | <literal>)
 
 property =
   | <flag>* [<ident>] <ident> [":" <specification>] ["=" <literal>] [<doc_string>]

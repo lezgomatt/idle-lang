@@ -1,17 +1,18 @@
-type InterfaceFile = {
+export type IDLEFile = {
     path: string, // absolute or relative (?)
     namespace: string,
     imports: Import[],
     defs: Definition[],
 };
 
-type Import = {
-    source: [InterfaceFile, number, number],
+// TODO: Add `source: [IDLEFile, number, number]`
+
+export type Import = {
     namespace: string,
     alias: string | null,
 };
 
-type Definition = {
+export type Definition = {
     flags: Flag[],
     kind: string,
     name: string,
@@ -19,28 +20,28 @@ type Definition = {
     props: Property[],
 };
 
-type Flag = { // AKA annotation
+export type Flag = { // AKA annotation
     name: string,
     params: Parameter[],
 };
 
-type Property = { // AKA field
+export type Property = { // AKA field
     flags: Flag[],
     kind: string | null, // or modifier
     name: string,
-    doc: string | null,
     spec: Specification | null,
     value: Literal | null,
+    doc: string | null,
 };
 
-type Specification = { // i.e. a type specification
+export type Specification = { // i.e. a type specification
     name: string | null,
     params: Parameter[],
 };
 
-type Parameter = {
+export type Parameter = {
     name: string | null,
     value: Specification | Literal,
 };
 
-type Literal = boolean | number | string;
+export type Literal = boolean | number | string;
