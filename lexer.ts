@@ -1,3 +1,47 @@
+export class TokenStream {
+    public readonly path: string;
+    private readonly tokens: Token[];
+    private index: number;
+
+    constructor(path: string, sourceText: string) {
+        this.path = path;
+        this.tokens = tokenize(sourceText);
+        this.index = 0;
+    }
+
+    peek(expectedType: string | string[] | null = null, expectedValue: string | null = null, offset: number = 0) {
+        let next = this.tokens[this.index + offset];
+
+        if (expectedType != null && (
+            typeof expectedType === "string" && next.t !== expectedType
+            || Array.isArray(expectedType) && !expectedType.includes(next.t)
+        )) {
+            return null;
+        }
+
+        if (expectedValue != null && next.value !== expectedValue) {
+            return null;
+        }
+
+        return next;
+    }
+
+    eat(expectedType: string | string[] | null = null, expectedValue: string | null = null, errorMessage: string | null = null) {
+        let tok = this.peek(expectedType, expectedValue);
+        if (tok == null) {
+            let next = this.tokens[this.index];
+            // FIXME: Provide a more descriptive message for the tokens
+            throw new Error(`Unexpected token "${next.t}" on line ${next.line}:${next.col}`);
+        }
+
+        if (tok.t !== "eof") {
+            this.index++;
+        }
+
+        return tok;
+    }
+}
+
 const SYMBOLS = [
     "(", ")", "[", "]", "{", "}",
     ".", ",", ":", "=",
@@ -13,12 +57,11 @@ export type Token = { line: number, col: number, start: number, end: number } & 
     | { t: "eof", value: null }
 );
 
-// TODO: Make this lazy by converting it into a generator (?)
 export function tokenize(input: string): Token[] {
     let offset = 0;
     let line = 1;
     let lineOffset = 0;
-    let tokens: Token[] = []; // FIXME
+    let tokens: Token[] = [];
 
     top: while (offset < input.length) {
         // Skip whitespace

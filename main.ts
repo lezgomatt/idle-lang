@@ -1,8 +1,8 @@
 import * as fs from "fs/promises";
-import { ParserState } from "./parser_state";
+import { TokenStream } from "./lexer";
 import { parse } from "./parser";
 
 let input = (await (await fs.open("./sample.idle")).readFile()).toString();
 
-let s = new ParserState(input);
+let s = new TokenStream("sample", input);
 console.log(JSON.stringify(parse(s), null, 2));
