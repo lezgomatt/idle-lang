@@ -1,18 +1,23 @@
 export type IdleFile = {
-    path: string, // absolute or relative (?)
-    namespace: string,
+    // path: string,
     imports: Import[],
     defs: Definition[],
 };
 
-// TODO: Add `source: [IdleFile, number, number]`
+// export type Source = {
+//     path: string,
+//     line: number,
+//     col: number,
+// }
 
 export type Import = {
+    // source: Source,
     namespace: string,
     alias: string | null,
 };
 
 export type Definition = {
+    // source: Source,
     flags: Flag[],
     kind: string,
     name: string,
@@ -21,11 +26,13 @@ export type Definition = {
 };
 
 export type Flag = { // AKA annotation
+    // source: Source,
     name: string,
     params: Parameter[],
 };
 
 export type Property = { // AKA field
+    // source: Source,
     flags: Flag[],
     kind: string | null, // or modifier
     name: string,
@@ -35,11 +42,13 @@ export type Property = { // AKA field
 };
 
 export type Specification = { // i.e. a type specification
+    // source: Source,
     name: string | null,
     params: Parameter[],
 };
 
 export type Parameter = {
+    // source: Source,
     name: string | null,
     value: Specification | Literal,
 };

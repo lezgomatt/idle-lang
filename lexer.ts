@@ -173,7 +173,7 @@ export function tokenize(input: string): Token[] {
             tokens.push({
                 t: "doc",
                 value,
-                line,
+                line: startLine,
                 col: (start - 2) - lineOffset + 1,
                 start: start - 2,
                 end: offset + 2,

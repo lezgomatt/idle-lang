@@ -112,8 +112,9 @@ function parseParameter(ts: TokenStream): Parameter {
     }
 
     // Named parameter
-    if (ts.peek("symb", ":", 1)) {
+    if (ts.peek("symb", ":", 1) != null) {
         let name = ts.eat("ident").value as string;
+        ts.eat("symb", ":");
         return { name, value: parseSpecification(ts) };
     }
 
