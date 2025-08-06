@@ -1,10 +1,17 @@
-import { TokenStream } from "./lexer";
-import { Definition, Flag, Import, Literal, Parameter, Property, Specification } from "./types";
+import { TokenStream } from "./lexer.ts";
+import { Definition, Flag, IdleFile, Import, Literal, Parameter, Property, Specification } from "./types.ts";
 
 // TODO: Minimize the use of "as" (need to improve the type of parser state)
 // TODO: Provide better error messages
 
-export function parse(ts: TokenStream) {
+export function parse(s: string) {
+    let tokens = new TokenStream("path-fixme", s);
+
+    return parseTokens(tokens);
+}
+
+
+export function parseTokens(ts: TokenStream): IdleFile {
     let imports: Import[] = [];
     let defs: Definition[] = [];
 

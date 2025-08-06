@@ -1,0 +1,30 @@
+{
+  "name": "idle-lang",
+  "version": "0.1.0",
+  "description": "A simple langauge for describing modules and data objects",
+  "keywords": [
+    "interface description language ",
+    "IDL",
+    "schema"
+  ],
+  "license": "Apache-2.0",
+  "author": "Matthew Go <lezgomatt@gmail.com>",
+  "repository": "github:lezgomatt/idle-lang",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"FIXME: Add tests\" && exit 1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

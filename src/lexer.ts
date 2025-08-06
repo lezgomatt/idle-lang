@@ -26,7 +26,7 @@ export class TokenStream {
         return next;
     }
 
-    eat(expectedType: string | string[] | null = null, expectedValue: string | null = null, errorMessage: string | null = null) {
+    eat(expectedType: string | string[] | null = null, expectedValue: string | null = null, _errorMessage: string | null = null) {
         let tok = this.peek(expectedType, expectedValue);
         if (tok == null) {
             let next = this.tokens[this.index];

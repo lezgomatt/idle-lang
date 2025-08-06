@@ -1,7 +1,7 @@
 Idle
 ====
 
-Idle is a simple langauge or format for describing modules and data structures.
+Idle is a simple langauge for describing modules and data objects.
 
 It's meant to be used as an
 [interface description language (IDL)](https://en.wikipedia.org/wiki/Interface_description_language)
