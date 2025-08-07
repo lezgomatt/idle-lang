@@ -103,7 +103,7 @@ export function tokenize(input: string): Token[] {
             continue;
         }
 
-        // Identifier (includes soft keywords like "import", "as", "true", "false")
+        // Identifier (includes soft keywords like "import", "as")
         if (input[offset].match(/^[_A-Za-z]/)) {
             let start = offset;
             offset++;

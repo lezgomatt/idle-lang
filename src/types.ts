@@ -1,9 +1,3 @@
-export type IdleFile = {
-    // path: string,
-    imports: Import[],
-    defs: Definition[],
-};
-
 // export type Source = {
 //     path: string,
 //     line: number,
@@ -12,8 +6,8 @@ export type IdleFile = {
 
 export type Import = {
     // source: Source,
-    namespace: string,
-    alias: string | null,
+    path: string,
+    alias: string,
 };
 
 export type Definition = {

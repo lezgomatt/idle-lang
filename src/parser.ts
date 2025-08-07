@@ -1,18 +1,16 @@
 import { TokenStream } from "./lexer.ts";
-import { Definition, Flag, IdleFile, Import, Literal, Parameter, Property, Specification } from "./types.ts";
+import { Definition, Flag, Import, Literal, Parameter, Property, Specification } from "./types.ts";
 
 // TODO: Minimize the use of "as" (need to improve the type of parser state)
 // TODO: Provide better error messages
-
 export function parse(s: string) {
     let tokens = new TokenStream("path-fixme", s);
 
-    return parseTokens(tokens);
+    return parseIdle(tokens);
 }
 
-
-export function parseTokens(ts: TokenStream): IdleFile {
-    let imports: Import[] = [];
+function parseIdle(ts: TokenStream): Definition[] {
+    let imports: Map<string, string> = new Map();
     let defs: Definition[] = [];
 
     while (ts.peek("eof") == null) {
@@ -27,25 +25,81 @@ export function parseTokens(ts: TokenStream): IdleFile {
         }
 
         if (tok.value === "import") {
-            imports.push(parseImport(ts));
+            // TODO: Detect duplicates
+            let imp = parseImport(ts);
+            imports.set(imp.alias, imp.path);
         } else {
             defs.push(parseDefinition(ts));
         }
     }
 
-    return { imports, defs };
+    return defs.map((d) => resolveImportsDefinition(imports, d));
+}
+
+function resolveImportsDefinition(imports: Map<string, string>, def: Definition): Definition {
+    return {
+        ...def,
+        flags: def.flags.map((f) => resolveImportsFlag(imports, f)),
+        props: def.props.map((p) => resolveImportsProperty(imports, p)),
+    };
+}
+
+function resolveImportsProperty(imports: Map<string, string>, prop: Property): Property {
+    return {
+        ...prop,
+        flags: prop.flags.map((f) => resolveImportsFlag(imports, f)),
+        spec: prop.spec == null ? null : resolveImportsSpecification(imports, prop.spec),
+    }
+}
+
+function resolveImportsFlag(imports: Map<string, string>, flag: Flag): Flag {
+    return {
+        ...flag,
+        params: flag.params.map((p) => resolveImportsParameter(imports, p)),
+    }
+}
+
+function resolveImportsParameter(imports: Map<string, string>, param: Parameter): Parameter {
+    return {
+        ...param,
+        value: typeof param.value !== "object" ? param.value : resolveImportsSpecification(imports, param.value),
+    }
+}
+
+function resolveImportsSpecification(imports: Map<string, string>, spec: Specification): Specification {
+    return {
+        ...spec,
+        name: spec.name == null ? null : resolveImportsName(imports, spec.name),
+        params: spec.params.map((p) => resolveImportsParameter(imports, p)),
+    }
+}
+
+function resolveImportsName(imports: Map<string, string>, name: string) {
+    let m = name.match(/^([^.]+)\.(.+)$/);
+    if (m == null) {
+        return name;
+    }
+
+    let path = imports.get(m[1]);
+    if (path == null) {
+        return name;
+    }
+
+    return `${path}.${m[2]}`;
 }
 
 function parseImport(ts: TokenStream): Import {
     ts.eat("ident", "import");
 
     let chunks: string[] = [];
-    let alias: string | null = null;
 
-    chunks.push(ts.eat("ident").value as string);
+    let alias: string = ts.eat("ident").value as string;
+    chunks.push(alias);
+
     while (ts.peek("symb", ".") != null) {
         ts.eat("symb", ".");
-        chunks.push(ts.eat("ident").value as string);
+        alias = ts.eat("ident").value as string;
+        chunks.push(alias);
     }
 
     if (ts.peek("ident", "as") != null) {
@@ -53,7 +107,7 @@ function parseImport(ts: TokenStream): Import {
         alias = ts.eat("ident").value as string;
     }
 
-    return { namespace: chunks.join("."), alias };
+    return { path: chunks.join("."), alias };
 }
 
 function parseDefinition(ts: TokenStream): Definition {
@@ -164,7 +218,12 @@ function parseProperty(ts: TokenStream): Property {
 function parseSpecification(ts: TokenStream): Specification {
     let name: string | null = null;
     if (ts.peek("ident") != null) {
-        name = ts.eat("ident").value as string;
+        let chunks = [ts.eat("ident").value as string];
+        while (ts.peek("symb", ".") != null) {
+            ts.eat("symb", ".");
+            chunks.push(ts.eat("ident").value as string);
+        }
+        name = chunks.join(".");
     }
 
     let params: Parameter[] = [];
