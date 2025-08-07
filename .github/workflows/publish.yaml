@@ -1,0 +1,36 @@
+name: Publish to npm
+run-name: Publish ${{ github.ref_name }}
+
+on:
+  push:
+    tags: [v*]
+
+jobs:
+  extract_version:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    outputs:
+      VERSION: ${{ steps.extractor.outputs.VERSION }}
+    steps:
+    - id: extractor
+      run: echo VERSION="${TAG#v}" >> $GITHUB_OUTPUT
+  publish:
+    needs: [extract_version]
+    runs-on: ubuntu-latest
+    environment:
+      name: publish
+      url: https://www.npmjs.com/package/idle-lang/v/${{ needs.extract_version.outputs.VERSION }}
+    permissions:
+      id-token: write # Needed to generate token for trusted publishing
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org'
+    # Ensure npm 11.5.1 or later is installed
+    - run: npm install -g npm@latest
+    - run: npm install -g pnpm@latest-10
+    - run: pnpm build
+    - run: npm publish

@@ -1,6 +1,6 @@
 {
   "name": "idle-lang",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple langauge for describing modules and data objects",
   "keywords": [
     "interface description language ",
