@@ -176,7 +176,11 @@ function parseParameter(ts: TokenStream): Parameter {
     if (ts.peek("symb", ":", 1) != null) {
         let name = ts.eat("ident").value as string;
         ts.eat("symb", ":");
-        return { name, value: parseSpecification(ts) };
+        if (ts.peek(["str", "int"]) != null) {
+            return { name, value: ts.eat(["str", "int"]).value as string | number };
+        } else {
+            return { name, value: parseSpecification(ts) };
+        }
     }
 
     return { name: null, value: parseSpecification(ts) };
@@ -189,8 +193,9 @@ function parseProperty(ts: TokenStream): Property {
     }
 
     let kind: string | null = null;
-    let name: string = ts.eat("ident").value as string;
-    if (ts.peek("ident") != null) {
+    let identToken = ts.eat("ident");
+    let name: string = identToken.value as string;
+    if (ts.peek("ident") != null && ts.peek("ident")!.line === identToken.line) {
         kind = name;
         name = ts.eat("ident").value as string;
     }
@@ -216,18 +221,21 @@ function parseProperty(ts: TokenStream): Property {
 }
 
 function parseSpecification(ts: TokenStream): Specification {
+    let lastIdent = null;
     let name: string | null = null;
     if (ts.peek("ident") != null) {
-        let chunks = [ts.eat("ident").value as string];
+        lastIdent = ts.eat("ident");
+        let chunks = [lastIdent.value as string];
         while (ts.peek("symb", ".") != null) {
             ts.eat("symb", ".");
-            chunks.push(ts.eat("ident").value as string);
+            lastIdent = ts.eat("ident");
+            chunks.push(lastIdent.value as string);
         }
         name = chunks.join(".");
     }
 
     let params: Parameter[] = [];
-    if (ts.peek("symb", "[") != null || name == null) {
+    if (lastIdent == null || ts.peek("symb", "[") != null && ts.peek("symb", "[")!.line == lastIdent.line) {
         ts.eat("symb", "[");
         params = parseParameterList(ts);
         ts.eat("symb", "]");

@@ -1,6 +1,6 @@
 {
   "name": "idle-lang",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A simple langauge for describing modules and data objects",
   "keywords": [
     "interface description language ",
@@ -9,7 +9,10 @@
   ],
   "license": "Apache-2.0",
   "author": "Matthew Go <lezgomatt@gmail.com>",
-  "repository": "github:lezgomatt/idle-lang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lezgomatt/idle-lang.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
