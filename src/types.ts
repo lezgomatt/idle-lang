@@ -1,8 +1,14 @@
-// export type Source = {
-//     path: string,
-//     line: number,
-//     col: number,
-// }
+export interface Source {
+    path: string,
+    start: Position,
+    end: Position,
+}
+
+export interface Position {
+    line: number,
+    col: number,
+    offset: number,
+}
 
 export type Import = {
     // source: Source,

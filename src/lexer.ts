@@ -1,11 +1,11 @@
+import { Position, Source } from "./types.ts";
+
 export class TokenStream {
-    public readonly path: string;
     private readonly tokens: Token[];
     private index: number;
 
-    constructor(path: string, sourceText: string) {
-        this.path = path;
-        this.tokens = tokenize(sourceText);
+    constructor(path: string, input: string) {
+        this.tokens = tokenize(path, input);
         this.index = 0;
     }
 
@@ -30,8 +30,9 @@ export class TokenStream {
         let tok = this.peek(expectedType, expectedValue);
         if (tok == null) {
             let next = this.tokens[this.index];
+            let pos = next.source.start;
             // FIXME: Provide a more descriptive message for the tokens
-            throw new Error(`Unexpected token "${next.t}" on line ${next.line}:${next.col}`);
+            throw new Error(`Unexpected token "${next.t}" on line ${pos.line}:${pos.col}`);
         }
 
         if (tok.t !== "eof") {
@@ -42,13 +43,13 @@ export class TokenStream {
     }
 }
 
+// NOTE: The code currently assumes that a symbol is a single character.
 const SYMBOLS = [
     "(", ")", "[", "]", "{", "}",
     ".", ",", ":", "=",
 ];
 
-// TODO: Simplify how the position is calculated
-export type Token = { line: number, col: number, start: number, end: number } & (
+export type Token = { source: Source } & (
     | { t: "symb", value: string }
     | { t: "ident", value: string }
     | { t: "nil", value: null }
@@ -61,14 +62,21 @@ export type Token = { line: number, col: number, start: number, end: number } & 
 
 export const LITERAL_TOKENS = ["str", "nil", "bool", "int"];
 
-export function tokenize(input: string): Token[] {
+export function tokenize(path: string, input: string): Token[] {
     let offset = 0;
     let line = 1;
     let lineOffset = 0;
+
+    function getPos(): Position {
+        let col = offset - lineOffset + 1;
+
+        return { line, col, offset };
+    }
+
     let tokens: Token[] = [];
 
     top: while (offset < input.length) {
-        // Skip whitespace
+        // ============ [ Whitespace ] ============ //
         while (offset < input.length && input[offset].match(/^\s/)) {
             if (input[offset] === "\n") {
                 line++;
@@ -80,7 +88,7 @@ export function tokenize(input: string): Token[] {
             continue top;
         }
 
-        // Skip comments
+        // ============ [ Comment ] ============ //
         if (input.startsWith("//", offset)) {
             offset += 2;
 
@@ -91,121 +99,91 @@ export function tokenize(input: string): Token[] {
             continue;
         }
 
-        // Symbol
+        // ============ [ Symbol ] ============ //
         if (SYMBOLS.includes(input[offset])) {
-            tokens.push({
-                t: "symb",
-                value: input[offset],
-                line,
-                col: offset - lineOffset + 1,
-                start: offset,
-                end: offset + 1,
-            });
+            let start = getPos();
 
-            offset++; // Eat the symbol
+            let value = input[offset];
+            offset++;
+
+            let end = getPos();
+
+            let source = { path, start, end };
+            tokens.push({ source, t: "symb", value });
 
             continue;
         }
 
-        // Identifier (includes soft keywords like "import", "as")
+        // ============ [ Identifier or keyword ] ============ //
         if (input[offset].match(/^[_A-Za-z]/)) {
-            let start = offset;
-            offset++;
+            let start = getPos();
 
+            offset++;
             while (offset < input.length && input[offset].match(/^[_0-9A-Za-z]/)) {
                 offset++;
             }
 
-            let value = input.slice(start, offset);
-            let loc = {
-                line,
-                col: start - lineOffset + 1,
-                start,
-                end: offset,
-            };
+            let end = getPos();
+
+            let value = input.slice(start.offset, end.offset);
+
+            let source = { path, start, end };
 
             switch (value) {
             case "nil":
-                tokens.push({ t: "nil", value: null, ...loc });
+                tokens.push({ source, t: "nil", value: null });
                 break;
             case "true":
-                tokens.push({ t: "bool", value: true, ...loc });
+                tokens.push({ source, t: "bool", value: true });
                 break;
             case "false":
-                tokens.push({ t: "bool", value: false, ...loc });
+                tokens.push({ source, t: "bool", value: false });
                 break;
             default:
-                tokens.push({ t: "ident", value, ...loc });
+                // Note: This includes soft keywords like "import", "as".
+                tokens.push({ source, t: "ident", value });
             }
 
             continue;
         }
 
-        // Integer
-        if (input[offset].match(/^[0-9]/)) {
-            let start = offset;
-            offset++;
-
-            while (offset < input.length && input[offset].match(/^[0-9]/)) {
-                offset++;
-            }
-
-            tokens.push({
-                t: "int",
-                value: Number(input.slice(start, offset)),
-                line,
-                col: start - lineOffset + 1,
-                start,
-                end: offset,
-            });
-
-            continue;
-        }
-
-        // Doc string
+        // ============ [ Doc string ] ============ //
         if (input.startsWith("``", offset)) {
+            let start = getPos();
+
             offset += 2; // Eat the opening quote
 
-            let start = offset;
-            let startLine = line;
-            let docLineStart = start;
-            let docLines: string[] = [];
             while (offset < input.length && !input.startsWith("``", offset)) {
                 if (input[offset] === "\n") {
                     line++;
                     lineOffset = offset + 1;
-                    docLines.push(input.slice(docLineStart, offset));
-                    docLineStart = lineOffset;
                 }
+
                 offset++;
             }
 
             if (!input.startsWith("``", offset)) {
-                throw new Error(`Missing doc string terminator that started on line ${startLine}`);
+                throw new Error(`Missing doc string terminator that started on line ${start.line}`);
             }
 
-            docLines.push(input.slice(docLineStart, offset));
+            offset += 2; // Eat the closing quote
+
+            let end = getPos();
+
+            let docLines = input.slice(start.offset + 2, end.offset - 2).split("\n");
             let value = docLines.map((line) => line.trim()).join("\n").trim();
 
-            tokens.push({
-                t: "doc",
-                value,
-                line: startLine,
-                col: (start - 2) - lineOffset + 1,
-                start: start - 2,
-                end: offset + 2,
-            });
-
-            offset += 2; // Eat the closing quote
+            let source = { path, start, end };
+            tokens.push({ source, t: "doc", value });
 
             continue;
         }
 
-        // String
+        // ============ [ String ] ============ //
         if (input[offset] === "\"") {
-            offset++; // Eat the opening quote
+            let start = getPos();
 
-            let start = offset;
+            offset++; // Eat the opening quote
             while (offset < input.length && input[offset] !== "\n" && input[offset] !== "\"") {
                 offset++;
             }
@@ -214,16 +192,34 @@ export function tokenize(input: string): Token[] {
                 throw new Error(`Missing string terminator on line ${line}`);
             }
 
-            tokens.push({
-                t: "str",
-                value: input.slice(start, offset),
-                line,
-                col: (start - 1) - lineOffset + 1,
-                start: start - 1,
-                end: offset + 1,
-            });
-
             offset++; // Eat the closing quote
+
+            let end = getPos();
+
+            let value = input.slice(start.offset + 1, end.offset - 1);
+
+            let source = { path, start, end };
+            tokens.push({ source, t: "str", value });
+
+            continue;
+        }
+
+
+        // ============ [ Integer ] ============ //
+        if (input[offset].match(/^[0-9]/)) {
+            let start = getPos();
+
+            offset++;
+            while (offset < input.length && input[offset].match(/^[0-9]/)) {
+                offset++;
+            }
+
+            let end = getPos();
+
+            let value = Number(input.slice(start.offset, end.offset));
+
+            let source = { path, start, end };
+            tokens.push({ source, t: "int", value });
 
             continue;
         }
@@ -231,14 +227,9 @@ export function tokenize(input: string): Token[] {
         throw new Error(`Unexpected character: ${input[offset]} on line ${line}`);
     }
 
-    tokens.push({
-        t: "eof",
-        value: null,
-        line,
-        col: offset - lineOffset + 1,
-        start: offset,
-        end: offset
-    });
+    let pos = getPos();
+    let source = { path, start: pos, end: pos };
+    tokens.push({ source, t: "eof", value: null });
 
     return tokens;
 }

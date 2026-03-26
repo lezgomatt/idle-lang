@@ -3,8 +3,9 @@ import { Definition, Flag, Import, Literal, Parameter, Property, Specification }
 
 // TODO: Minimize the use of "as" (need to improve the type of parser state)
 // TODO: Provide better error messages
-export function parse(s: string) {
-    let tokens = new TokenStream("path-fixme", s);
+
+export function parse(path: string, text: string) {
+    let tokens = new TokenStream(path, text);
 
     return parseIdle(tokens);
 }
@@ -51,10 +52,10 @@ function resolveImportsFlag(imports: Map<string, string>, flag: Flag): Flag {
 
 function resolveImportsParameter(imports: Map<string, string>, param: Parameter): Parameter {
     if (param.value == null || typeof param.value !== "object") {
-        return { ...param, value: param.value };
-    } else {
-        return { ...param, value: resolveImportsSpecification(imports, param.value) };
+        return param;
     }
+
+    return { ...param, value: resolveImportsSpecification(imports, param.value) };
 }
 
 function resolveImportsSpecification(imports: Map<string, string>, spec: Specification): Specification {
@@ -186,7 +187,7 @@ function parseProperty(ts: TokenStream): Property {
     let kind: string | null = null;
     let identToken = ts.eat("ident");
     let name: string = identToken.value as string;
-    if (ts.peek("ident") != null && ts.peek("ident")!.line === identToken.line) {
+    if (ts.peek("ident") != null && ts.peek("ident")!.source.end.line === identToken.source.start.line) {
         kind = name;
         name = ts.eat("ident").value as string;
     }
@@ -222,7 +223,7 @@ function parseSpecification(ts: TokenStream): Specification {
 
     let name: string = components.join(".");
     let params: Parameter[] = [];
-    if (ts.peek("symb", "[") != null && ts.peek("symb", "[")!.line == ident.line) {
+    if (ts.peek("symb", "[") != null && ts.peek("symb", "[")!.source.start.line == ident.source.end.line) {
         ts.eat("symb", "[");
         params = parseParameterList(ts);
         ts.eat("symb", "]");
