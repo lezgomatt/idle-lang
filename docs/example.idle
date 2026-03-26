@@ -1,0 +1,36 @@
+// This is a comment. Everything after the "//" until the end of the line will be ignored.
+
+// Imports need to come before definitions.
+// NOTE: "import" and "as" are only a soft keyword, and can be used as a valid identifier for field names, etc.
+import foo as f // Imports are just aliases. They don't need to point to actual files.
+import bar.qux as q
+import bar.baz // If no alias is specified, then the last component (i.e. "baz") serves as the alias.
+
+[flag] // This is a flag. Its interpretation is up to the consumer.
+[simple(nil)] // Flags can have arguments.
+[simple("...")] // They can also be duplicated.
+[complex(flag: true, ref: q.Bar[_], num: 1)] // And have more complex parameters.
+mod Foo {
+    ``This is an optional doc-string for the definition.``
+
+    field field_with_doc
+    ``doc for field above, not below``
+
+    field another_field: foo[bar]
+
+    // NOTE: The "[" must be onl the same line, otherwise it would be interpreted as a flag for the next field
+    field test_field: foo
+
+    [flag]
+    field last_field = 2
+}
+
+type X {
+    field_without_anything
+
+    test field_with_kind_only
+
+    field_with_spec: Spec[x: 1, y: 2]
+    field_with_value = "VALUE"
+    field_with_spec_and_value: Spec = "VALUE"
+}

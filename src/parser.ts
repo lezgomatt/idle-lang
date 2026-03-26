@@ -1,4 +1,4 @@
-import { TokenStream } from "./lexer.ts";
+import { LITERAL_TOKENS, TokenStream } from "./lexer.ts";
 import { Definition, Flag, Import, Literal, Parameter, Property, Specification } from "./types.ts";
 
 // TODO: Minimize the use of "as" (need to improve the type of parser state)
@@ -13,24 +13,14 @@ function parseIdle(ts: TokenStream): Definition[] {
     let imports: Map<string, string> = new Map();
     let defs: Definition[] = [];
 
-    while (ts.peek("eof") == null) {
-        if (ts.peek("symb", "[") != null) {
-            defs.push(parseDefinition(ts));
-            continue;
-        }
-
-        let tok = ts.peek("ident");
-        if (tok == null) {
-            throw new Error("Unexpected statement on line: " + ts.peek()?.line); // FIXME
-        }
-
-        if (tok.value === "import") {
-            // TODO: Detect duplicates
+    for (let tok = ts.peek("ident"); tok != null && tok.value === "import"; tok = ts.peek("ident")) {
             let imp = parseImport(ts);
+            // TODO: Detect duplicates
             imports.set(imp.alias, imp.path);
-        } else {
-            defs.push(parseDefinition(ts));
-        }
+    }
+
+    while (ts.peek("eof") == null) {
+        defs.push(parseDefinition(ts));
     }
 
     return defs.map((d) => resolveImportsDefinition(imports, d));
@@ -60,16 +50,17 @@ function resolveImportsFlag(imports: Map<string, string>, flag: Flag): Flag {
 }
 
 function resolveImportsParameter(imports: Map<string, string>, param: Parameter): Parameter {
-    return {
-        ...param,
-        value: typeof param.value !== "object" ? param.value : resolveImportsSpecification(imports, param.value),
+    if (param.value == null || typeof param.value !== "object") {
+        return { ...param, value: param.value };
+    } else {
+        return { ...param, value: resolveImportsSpecification(imports, param.value) };
     }
 }
 
 function resolveImportsSpecification(imports: Map<string, string>, spec: Specification): Specification {
     return {
         ...spec,
-        name: spec.name == null ? null : resolveImportsName(imports, spec.name),
+        name: resolveImportsName(imports, spec.name),
         params: spec.params.map((p) => resolveImportsParameter(imports, p)),
     }
 }
@@ -91,15 +82,15 @@ function resolveImportsName(imports: Map<string, string>, name: string) {
 function parseImport(ts: TokenStream): Import {
     ts.eat("ident", "import");
 
-    let chunks: string[] = [];
+    let components: string[] = [];
 
     let alias: string = ts.eat("ident").value as string;
-    chunks.push(alias);
+    components.push(alias);
 
     while (ts.peek("symb", ".") != null) {
         ts.eat("symb", ".");
         alias = ts.eat("ident").value as string;
-        chunks.push(alias);
+        components.push(alias);
     }
 
     if (ts.peek("ident", "as") != null) {
@@ -107,7 +98,7 @@ function parseImport(ts: TokenStream): Import {
         alias = ts.eat("ident").value as string;
     }
 
-    return { path: chunks.join("."), alias };
+    return { path: components.join("."), alias };
 }
 
 function parseDefinition(ts: TokenStream): Definition {
@@ -156,7 +147,7 @@ function parseFlag(ts: TokenStream): Flag {
 function parseParameterList(ts: TokenStream): Parameter[] {
     let params: Parameter[] = [];
 
-    if (ts.peek(["ident", "str", "int"]) != null || ts.peek("symb", "[") != null) {
+    if (ts.peek(["ident"]) != null || ts.peek(LITERAL_TOKENS) != null) {
         params.push(parseParameter(ts));
         while (ts.peek("symb", ",") != null) {
             ts.eat("symb", ",");
@@ -168,16 +159,16 @@ function parseParameterList(ts: TokenStream): Parameter[] {
 }
 
 function parseParameter(ts: TokenStream): Parameter {
-    if (ts.peek(["str", "int"]) != null) {
-        return { name: null, value: ts.eat(["str", "int"]).value as string | number };
+    if (ts.peek(LITERAL_TOKENS) != null) {
+        return { name: null, value: ts.eat(LITERAL_TOKENS).value };
     }
 
     // Named parameter
     if (ts.peek("symb", ":", 1) != null) {
         let name = ts.eat("ident").value as string;
         ts.eat("symb", ":");
-        if (ts.peek(["str", "int"]) != null) {
-            return { name, value: ts.eat(["str", "int"]).value as string | number };
+        if (ts.peek(LITERAL_TOKENS) != null) {
+            return { name, value: ts.eat(LITERAL_TOKENS).value };
         } else {
             return { name, value: parseSpecification(ts) };
         }
@@ -209,7 +200,7 @@ function parseProperty(ts: TokenStream): Property {
     let value: Literal | null = null;
     if (ts.peek("symb", "=") != null) {
         ts.eat("symb", "=");
-        value = ts.eat(["str", "int"]).value as string | number;
+        value = ts.eat(LITERAL_TOKENS).value;
     }
 
     let doc: string | null = null;
@@ -221,21 +212,17 @@ function parseProperty(ts: TokenStream): Property {
 }
 
 function parseSpecification(ts: TokenStream): Specification {
-    let lastIdent = null;
-    let name: string | null = null;
-    if (ts.peek("ident") != null) {
-        lastIdent = ts.eat("ident");
-        let chunks = [lastIdent.value as string];
-        while (ts.peek("symb", ".") != null) {
-            ts.eat("symb", ".");
-            lastIdent = ts.eat("ident");
-            chunks.push(lastIdent.value as string);
-        }
-        name = chunks.join(".");
+    let ident = ts.eat("ident");
+    let components = [ident.value as string];
+    while (ts.peek("symb", ".") != null) {
+        ts.eat("symb", ".");
+        ident = ts.eat("ident");
+        components.push(ident.value as string);
     }
 
+    let name: string = components.join(".");
     let params: Parameter[] = [];
-    if (lastIdent == null || ts.peek("symb", "[") != null && ts.peek("symb", "[")!.line == lastIdent.line) {
+    if (ts.peek("symb", "[") != null && ts.peek("symb", "[")!.line == ident.line) {
         ts.eat("symb", "[");
         params = parseParameterList(ts);
         ts.eat("symb", "]");

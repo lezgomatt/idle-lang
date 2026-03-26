@@ -37,7 +37,7 @@ export type Property = { // AKA field
 
 export type Specification = { // i.e. a type specification
     // source: Source,
-    name: string | null,
+    name: string,
     params: Parameter[],
 };
 
@@ -47,4 +47,4 @@ export type Parameter = {
     value: Specification | Literal,
 };
 
-export type Literal = boolean | number | string;
+export type Literal = null | boolean | number | string;

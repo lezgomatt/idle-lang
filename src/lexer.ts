@@ -51,11 +51,15 @@ const SYMBOLS = [
 export type Token = { line: number, col: number, start: number, end: number } & (
     | { t: "symb", value: string }
     | { t: "ident", value: string }
+    | { t: "nil", value: null }
+    | { t: "bool", value: boolean }
     | { t: "int", value: number }
     | { t: "doc", value: string }
     | { t: "str", value: string }
     | { t: "eof", value: null }
 );
+
+export const LITERAL_TOKENS = ["str", "nil", "bool", "int"];
 
 export function tokenize(input: string): Token[] {
     let offset = 0;
@@ -112,14 +116,27 @@ export function tokenize(input: string): Token[] {
                 offset++;
             }
 
-            tokens.push({
-                t: "ident",
-                value: input.slice(start, offset),
+            let value = input.slice(start, offset);
+            let loc = {
                 line,
                 col: start - lineOffset + 1,
                 start,
                 end: offset,
-            });
+            };
+
+            switch (value) {
+            case "nil":
+                tokens.push({ t: "nil", value: null, ...loc });
+                break;
+            case "true":
+                tokens.push({ t: "bool", value: true, ...loc });
+                break;
+            case "false":
+                tokens.push({ t: "bool", value: false, ...loc });
+                break;
+            default:
+                tokens.push({ t: "ident", value, ...loc });
+            }
 
             continue;
         }

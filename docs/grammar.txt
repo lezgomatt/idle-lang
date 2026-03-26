@@ -1,22 +1,23 @@
 line_comment = "//" ...
 
-idle_file = statement*
-statement = import_statement | definition_statement
+idle_file = import_statement* definition_statement*
 
 import_statement = "import" <ident_path> ["as" <ident>]
+
 definition_statement = <flag>* <ident> <ident> "{" [<doc_string>] <property>* "}"
 
 flag = "[" <ident> ["(" [<parameter_list>] ")"] "]"
 property = <flag>* [<ident>] <ident> [":" <specification>] ["=" <literal>] [<doc_string>]
-specification = <ident_path> ["[" [parameter_list] "]"] | "[" [parameter_list] "]"
+specification = <ident_path> ["[" [parameter_list] "]"]
 
 parameter_list = <parameter> ("," <parameter>)*
 parameter = [<ident> ":"] (<specification> | <literal>)
 
 ident_path = <ident> ("." <ident>)*
 ident = [_A-Za-z][_A-Za-z0-9]*
-// TODO: Support true, false, & nil?
-literal = <integer> | <string>
+literal = <nil> | <boolean> | <integer> | <string>
+nil = "nil"
+boolean = "true" | "false"
 integer = [0-9]+
 string = `"` ... `"`
 doc_string = "``" ... "``"
