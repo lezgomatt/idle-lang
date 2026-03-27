@@ -11,13 +11,13 @@ export interface Position {
 }
 
 export type Import = {
-    // source: Source,
+    source: Source,
     path: string,
     alias: string,
 };
 
 export type Definition = {
-    // source: Source,
+    source: Source,
     flags: Flag[],
     kind: string,
     name: string,
@@ -26,13 +26,13 @@ export type Definition = {
 };
 
 export type Flag = { // AKA annotation
-    // source: Source,
+    source: Source,
     name: string,
     params: Parameter[],
 };
 
 export type Property = { // AKA field
-    // source: Source,
+    source: Source,
     flags: Flag[],
     kind: string | null, // or modifier
     name: string,
@@ -42,13 +42,13 @@ export type Property = { // AKA field
 };
 
 export type Specification = { // i.e. a type specification
-    // source: Source,
+    source: Source,
     name: string,
     params: Parameter[],
 };
 
 export type Parameter = {
-    // source: Source,
+    source: Source,
     name: string | null,
     value: Specification | Literal,
 };
