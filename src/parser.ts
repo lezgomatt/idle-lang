@@ -2,7 +2,6 @@ import { LITERAL_TOKENS, TokenStream } from "./lexer.ts";
 import { Definition, Flag, Import, Literal, Parameter, Property, Source, Specification } from "./types.ts";
 import { transformReferences } from "./utils.ts";
 
-// TODO: Minimize the use of "as" (need to improve the type of parser state)
 // TODO: Provide better error messages
 
 export function parse(path: string, text: string) {
@@ -51,7 +50,7 @@ function parseImport(ts: TokenStream): Import {
     let alias = components.at(-1)!;
     if (ts.peek("ident", "as") != null) {
         ts.eat("ident", "as");
-        alias = ts.eat("ident").value as string;
+        alias = ts.eat("ident").value;
     }
 
     return { source, path: components.join("."), alias };
@@ -63,16 +62,16 @@ function parseDefinition(ts: TokenStream): Definition {
         flags.push(parseFlag(ts));
     }
 
-    let kind: string = ts.eat("ident").value as string;
+    let kind = ts.eat("ident").value;
     let ident = ts.eat("ident");
-    let name: string = ident.value as string;
+    let name = ident.value;
     let source = ident.source;
 
     ts.eat("symb", "{");
 
     let doc: string | null = null;
     if (ts.peek("doc") != null) {
-        doc = ts.eat("doc").value as string;
+        doc = ts.eat("doc").value;
     }
 
     let props: Property[] = [];
@@ -89,7 +88,7 @@ function parseFlag(ts: TokenStream): Flag {
     ts.eat("symb", "[");
 
     let ident = ts.eat("ident");
-    let name: string = ident.value as string;
+    let name = ident.value;
     let source = ident.source;
 
     let params: Parameter[] = [];
@@ -128,7 +127,7 @@ function parseParameter(ts: TokenStream): Parameter {
     // Named parameter
     if (ts.peek("symb", ":", 1) != null) {
         let ident = ts.eat("ident");
-        let name = ident.value as string;
+        let name = ident.value;
         let source = ident.source;
 
         ts.eat("symb", ":");
@@ -158,8 +157,8 @@ function parseProperty(ts: TokenStream): Property {
     }
 
     let [kind, name, source] = (nextIdent != null && nextIdent.source.start.line === firstIdent.source.end.line)
-        ? [firstIdent.value as string, nextIdent.value as string, nextIdent.source]
-        : [null, firstIdent.value as string, firstIdent.source];
+        ? [firstIdent.value, nextIdent.value, nextIdent.source]
+        : [null, firstIdent.value, firstIdent.source];
 
     let spec: Specification | null = null;
     if (ts.peek("symb", ":") != null) {
@@ -175,7 +174,7 @@ function parseProperty(ts: TokenStream): Property {
 
     let doc: string | null = null;
     if (ts.peek("doc") != null) {
-        doc = ts.eat("doc").value as string;
+        doc = ts.eat("doc").value;
     }
 
     return { source, flags, kind, name, spec, value, doc };
@@ -199,13 +198,13 @@ function parseIdentPath(ts: TokenStream): { source: Source, components: string[]
     let components: string[] = [];
 
     let ident = ts.eat("ident");
-    components.push(ident.value as string);
+    components.push(ident.value);
     let source = ident.source;
 
     while (ts.peek("symb", ".") != null) {
         ts.eat("symb", ".");
         let ident = ts.eat("ident");
-        components.push(ident.value as string);
+        components.push(ident.value);
         source.end = ident.source.end;
     }
 

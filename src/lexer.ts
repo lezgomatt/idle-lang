@@ -8,12 +8,12 @@ export class TokenStream {
         this.tokens = tokenize(path, input);
     }
 
-    peek(expectedType: string | string[] | null = null, expectedValue: string | null = null, offset: number = 0) {
+    peek<T extends keyof TokenTypeMap>(expectedType: T | readonly T[] | null = null, expectedValue: string | null = null, offset: number = 0): TokenTypeMap[T] | null {
         let next = this.getNextToken(offset);
 
         if (expectedType != null && (
             typeof expectedType === "string" && next.t !== expectedType
-            || Array.isArray(expectedType) && !expectedType.includes(next.t)
+            || Array.isArray(expectedType) && !expectedType.includes(next.t as T)
         )) {
             return null;
         }
@@ -22,10 +22,10 @@ export class TokenStream {
             return null;
         }
 
-        return next;
+        return next as TokenTypeMap[T] | null;
     }
 
-    eat(expectedType: string | string[] | null = null, expectedValue: string | null = null, _errorMessage: string | null = null) {
+    eat<T extends keyof TokenTypeMap>(expectedType: T | readonly T[] | null = null, expectedValue: string | null = null, _errorMessage: string | null = null): TokenTypeMap[T] {
         let tok = this.peek(expectedType, expectedValue);
         if (tok == null) {
             let next = this.getNextToken();
@@ -73,7 +73,9 @@ export type Token = { source: Source } & (
     | { t: "eof", value: null }
 );
 
-export const LITERAL_TOKENS = ["str", "nil", "bool", "int"];
+export type TokenTypeMap = { [T in Token as T["t"]]: T };
+
+export const LITERAL_TOKENS = ["str", "nil", "bool", "int"] as const;
 
 export function* tokenize(path: string, input: string): Iterator<Token> {
     let offset = 0;
