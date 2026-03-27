@@ -1,16 +1,15 @@
 import { Position, Source } from "./types.ts";
 
 export class TokenStream {
-    private readonly tokens: Token[];
-    private index: number;
+    private readonly tokens: Iterator<Token>;
+    private buffer: Token[] = [];
 
     constructor(path: string, input: string) {
         this.tokens = tokenize(path, input);
-        this.index = 0;
     }
 
     peek(expectedType: string | string[] | null = null, expectedValue: string | null = null, offset: number = 0) {
-        let next = this.tokens[this.index + offset];
+        let next = this.getNextToken(offset);
 
         if (expectedType != null && (
             typeof expectedType === "string" && next.t !== expectedType
@@ -29,17 +28,31 @@ export class TokenStream {
     eat(expectedType: string | string[] | null = null, expectedValue: string | null = null, _errorMessage: string | null = null) {
         let tok = this.peek(expectedType, expectedValue);
         if (tok == null) {
-            let next = this.tokens[this.index];
+            let next = this.getNextToken();
             let pos = next.source.start;
             // FIXME: Provide a more descriptive message for the tokens
             throw new Error(`Unexpected token "${next.t}" on line ${pos.line}:${pos.col}`);
         }
 
         if (tok.t !== "eof") {
-            this.index++;
+            this.buffer.shift();
         }
 
         return tok;
+    }
+
+    private getNextToken(offset: number = 0) {
+        while (this.buffer.length <= offset) {
+            let next = this.tokens.next();
+            if (next.done) {
+                // FIXME: Handle this better...
+                break;
+            }
+
+            this.buffer.push(next.value);
+        }
+
+        return this.buffer[offset];
     }
 }
 
@@ -62,7 +75,7 @@ export type Token = { source: Source } & (
 
 export const LITERAL_TOKENS = ["str", "nil", "bool", "int"];
 
-export function tokenize(path: string, input: string): Token[] {
+export function* tokenize(path: string, input: string): Iterator<Token> {
     let offset = 0;
     let line = 1;
     let lineOffset = 0;
@@ -72,8 +85,6 @@ export function tokenize(path: string, input: string): Token[] {
 
         return { line, col, offset };
     }
-
-    let tokens: Token[] = [];
 
     top: while (offset < input.length) {
         // ============ [ Whitespace ] ============ //
@@ -109,7 +120,7 @@ export function tokenize(path: string, input: string): Token[] {
             let end = getPos();
 
             let source = { path, start, end };
-            tokens.push({ source, t: "symb", value });
+            yield { source, t: "symb", value };
 
             continue;
         }
@@ -131,17 +142,17 @@ export function tokenize(path: string, input: string): Token[] {
 
             switch (value) {
             case "nil":
-                tokens.push({ source, t: "nil", value: null });
+                yield { source, t: "nil", value: null };
                 break;
             case "true":
-                tokens.push({ source, t: "bool", value: true });
+                yield { source, t: "bool", value: true };
                 break;
             case "false":
-                tokens.push({ source, t: "bool", value: false });
+                yield { source, t: "bool", value: false };
                 break;
             default:
                 // Note: This includes soft keywords like "import", "as".
-                tokens.push({ source, t: "ident", value });
+                yield { source, t: "ident", value };
             }
 
             continue;
@@ -174,7 +185,7 @@ export function tokenize(path: string, input: string): Token[] {
             let value = docLines.map((line) => line.trim()).join("\n").trim();
 
             let source = { path, start, end };
-            tokens.push({ source, t: "doc", value });
+            yield { source, t: "doc", value };
 
             continue;
         }
@@ -199,7 +210,7 @@ export function tokenize(path: string, input: string): Token[] {
             let value = input.slice(start.offset + 1, end.offset - 1);
 
             let source = { path, start, end };
-            tokens.push({ source, t: "str", value });
+            yield { source, t: "str", value };
 
             continue;
         }
@@ -219,7 +230,7 @@ export function tokenize(path: string, input: string): Token[] {
             let value = Number(input.slice(start.offset, end.offset));
 
             let source = { path, start, end };
-            tokens.push({ source, t: "int", value });
+            yield { source, t: "int", value };
 
             continue;
         }
@@ -229,7 +240,5 @@ export function tokenize(path: string, input: string): Token[] {
 
     let pos = getPos();
     let source = { path, start: pos, end: pos };
-    tokens.push({ source, t: "eof", value: null });
-
-    return tokens;
+    yield { source, t: "eof", value: null };
 }
