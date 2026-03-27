@@ -25,22 +25,22 @@ function parseIdle(ts: TokenStream): Definition[] {
         defs.push(parseDefinition(ts));
     }
 
-    function expandImportAliases(name: string) {
-        let separator = name.indexOf(".");
-        if (separator === -1) {
-            return name;
-        }
+    return defs.map((d) => transformReferences(d, (name) => expandImportAlias(imports, name)));
+}
 
-        let potentialAlias = name.slice(0, separator);
-        let importPath = imports.get(potentialAlias);
-        if (importPath == null) {
-            return name;
-        }
-
-        return `${importPath}.${name.slice(separator + 1)}`;
+function expandImportAlias(imports: Map<string, string>, name: string) {
+    let separator = name.indexOf(".");
+    if (separator === -1) {
+        return name;
     }
 
-    return defs.map((d) => transformReferences(d, expandImportAliases));
+    let potentialAlias = name.slice(0, separator);
+    let importPath = imports.get(potentialAlias);
+    if (importPath == null) {
+        return name;
+    }
+
+    return `${importPath}.${name.slice(separator + 1)}`;
 }
 
 function parseImport(ts: TokenStream): Import {
