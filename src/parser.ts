@@ -1,5 +1,6 @@
 import { LITERAL_TOKENS, TokenStream } from "./lexer.ts";
 import { Definition, Flag, Import, Literal, Parameter, Property, Specification } from "./types.ts";
+import { transformReferences } from "./utils.ts";
 
 // TODO: Minimize the use of "as" (need to improve the type of parser state)
 // TODO: Provide better error messages
@@ -24,60 +25,22 @@ function parseIdle(ts: TokenStream): Definition[] {
         defs.push(parseDefinition(ts));
     }
 
-    return defs.map((d) => resolveImportsDefinition(imports, d));
-}
+    function expandImportAliases(name: string) {
+        let separator = name.indexOf(".");
+        if (separator === -1) {
+            return name;
+        }
 
-function resolveImportsDefinition(imports: Map<string, string>, def: Definition): Definition {
-    return {
-        ...def,
-        flags: def.flags.map((f) => resolveImportsFlag(imports, f)),
-        props: def.props.map((p) => resolveImportsProperty(imports, p)),
-    };
-}
+        let potentialAlias = name.slice(0, separator);
+        let importPath = imports.get(potentialAlias);
+        if (importPath == null) {
+            return name;
+        }
 
-function resolveImportsProperty(imports: Map<string, string>, prop: Property): Property {
-    return {
-        ...prop,
-        flags: prop.flags.map((f) => resolveImportsFlag(imports, f)),
-        spec: prop.spec == null ? null : resolveImportsSpecification(imports, prop.spec),
-    }
-}
-
-function resolveImportsFlag(imports: Map<string, string>, flag: Flag): Flag {
-    return {
-        ...flag,
-        params: flag.params.map((p) => resolveImportsParameter(imports, p)),
-    }
-}
-
-function resolveImportsParameter(imports: Map<string, string>, param: Parameter): Parameter {
-    if (param.value == null || typeof param.value !== "object") {
-        return param;
+        return `${importPath}.${name.slice(separator + 1)}`;
     }
 
-    return { ...param, value: resolveImportsSpecification(imports, param.value) };
-}
-
-function resolveImportsSpecification(imports: Map<string, string>, spec: Specification): Specification {
-    return {
-        ...spec,
-        name: resolveImportsName(imports, spec.name),
-        params: spec.params.map((p) => resolveImportsParameter(imports, p)),
-    }
-}
-
-function resolveImportsName(imports: Map<string, string>, name: string) {
-    let m = name.match(/^([^.]+)\.(.+)$/);
-    if (m == null) {
-        return name;
-    }
-
-    let path = imports.get(m[1]);
-    if (path == null) {
-        return name;
-    }
-
-    return `${path}.${m[2]}`;
+    return defs.map((d) => transformReferences(d, expandImportAliases));
 }
 
 function parseImport(ts: TokenStream): Import {
