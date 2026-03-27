@@ -1,13 +1,13 @@
 {
   "name": "idle-lang",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "description": "A simple langauge for describing modules and data objects",
   "keywords": [
     "interface description language ",
     "IDL",
     "schema"
   ],
-  "license": "Apache-2.0",
+  "license": "Zlib",
   "author": "Matthew Go <lezgomatt@gmail.com>",
   "repository": {
     "type": "git",
