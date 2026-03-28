@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { dirname, sep as PATH_SEPARATOR } from "node:path";
+import * as nodePath from "node:path";
 
 import { parse } from "./parser.ts";
 import { transformReferences } from "./utils.ts";
@@ -24,7 +24,7 @@ export function* listIdleFiles(dir: string): IterableIterator<[string, string]> 
     paths.sort();
 
     for (let p of paths) {
-        yield [p, fs.readFileSync(p, { encoding: "utf8" })];
+        yield [p, fs.readFileSync(nodePath.join(dir, p), { encoding: "utf8" })];
     }
 }
 
@@ -32,7 +32,7 @@ function loadUnqualified(files: Iterable<[string, string]>): Map<string, Definit
     let allDefs = new Map<string, Definition>();
 
     for (let [path, text] of files) {
-        let module = dirname(path).replaceAll(PATH_SEPARATOR, ".");
+        let module = nodePath.dirname(path).replaceAll(nodePath.sep, ".");
 
         for (let def of parse(path, text)) {
             let qualifiedName = (module === ".") ? def.name : `${module}.${def.name}`;
