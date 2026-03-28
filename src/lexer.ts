@@ -128,17 +128,14 @@ export function* tokenize(path: string, input: string): Iterator<Token> {
         }
 
         // ============ [ Identifier or keyword ] ============ //
-        if (input[offset].match(/^[_A-Za-z]/)) {
+        let identMatch = input.slice(offset).match(/^[_A-Za-z][_0-9A-Za-z]*/);
+        if (identMatch != null) {
             let start = getPos();
 
-            offset++;
-            while (offset < input.length && input[offset].match(/^[_0-9A-Za-z]/)) {
-                offset++;
-            }
+            let value = identMatch[0];
+            offset += value.length;
 
             let end = getPos();
-
-            let value = input.slice(start.offset, end.offset);
 
             let source = { path, start, end };
 
@@ -219,17 +216,14 @@ export function* tokenize(path: string, input: string): Iterator<Token> {
 
 
         // ============ [ Integer ] ============ //
-        if (input[offset].match(/^[0-9]/)) {
+        let intMatch = input.slice(offset).match(/^-?[0-9][_0-9]*/);
+        if (intMatch != null) {
             let start = getPos();
 
-            offset++;
-            while (offset < input.length && input[offset].match(/^[0-9]/)) {
-                offset++;
-            }
+            let value = parseInt(intMatch[0].replaceAll("_", ""), 10);
+            offset += intMatch[0].length;
 
             let end = getPos();
-
-            let value = Number(input.slice(start.offset, end.offset));
 
             let source = { path, start, end };
             yield { source, t: "int", value };
