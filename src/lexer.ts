@@ -67,7 +67,7 @@ export type Token = { source: Source } & (
     | { t: "ident", value: string }
     | { t: "nil", value: null }
     | { t: "bool", value: boolean }
-    | { t: "int", value: number }
+    | { t: "num", value: number }
     | { t: "doc", value: string }
     | { t: "str", value: string }
     | { t: "eof", value: null }
@@ -75,7 +75,7 @@ export type Token = { source: Source } & (
 
 export type TokenTypeMap = { [T in Token as T["t"]]: T };
 
-export const LITERAL_TOKENS = ["str", "nil", "bool", "int"] as const;
+export const LITERAL_TOKENS = ["str", "nil", "bool", "num"] as const;
 
 export function* tokenize(path: string, input: string): Iterator<Token> {
     let offset = 0;
@@ -215,18 +215,18 @@ export function* tokenize(path: string, input: string): Iterator<Token> {
         }
 
 
-        // ============ [ Integer ] ============ //
-        let intMatch = input.slice(offset).match(/^-?[0-9][_0-9]*/);
-        if (intMatch != null) {
+        // ============ [ Number ] ============ //
+        let numMatch = input.slice(offset).match(/^-?[0-9][_0-9]*(\.[0-9][_0-9]*)?/);
+        if (numMatch != null) {
             let start = getPos();
 
-            let value = parseInt(intMatch[0].replaceAll("_", ""), 10);
-            offset += intMatch[0].length;
+            let value = Number(numMatch[0].replaceAll("_", ""));
+            offset += numMatch[0].length;
 
             let end = getPos();
 
             let source = { path, start, end };
-            yield { source, t: "int", value };
+            yield { source, t: "num", value };
 
             continue;
         }
